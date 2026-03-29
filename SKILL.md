@@ -143,6 +143,60 @@ No watermarks, no logos, no marks in this zone.
 
 Then use `smart_crop_bottom()` to find where content ends and crop there.
 
+### Post-Processing Text Edits (PIL)
+
+When you need to change a few words without regenerating the whole figure (e.g. "LLM agent" → "Agent"), use PIL to surgically edit:
+
+```python
+from PIL import Image, ImageDraw, ImageFont
+import numpy as np
+
+im = Image.open('figure.png')
+arr = np.array(im)
+
+# 1. Locate text by scanning for dark pixels in a rough region
+roi = arr[y1:y2, x1:x2]
+gray = roi.mean(axis=2)
+dark = gray < 100
+rows = np.where(dark.any(axis=1))[0]
+cols = np.where(dark.any(axis=0))[0]
+
+# 2. Fill with white
+draw = ImageDraw.Draw(im)
+draw.rectangle([exact_x1, exact_y1, exact_x2, exact_y2], fill='white')
+
+# 3. Write new text centered in the same area
+font = ImageFont.truetype('C:/Windows/Fonts/arial.ttf', font_size)
+draw.text((tx, ty), "New Text", fill='#333333', font=font)
+im.save('figure.png')
+```
+
+This is much faster and more reliable than regenerating — AI models may change other elements unpredictably.
+
+### Iterative Generation Strategy
+
+For constraints that AI models struggle to follow consistently (e.g. "label appears exactly once"), use batch generation:
+
+1. Generate 5 variants with the same prompt
+2. Visually inspect each for constraint compliance
+3. Pick the best one, then use PIL post-processing for minor fixes
+4. Typical success rate: 2 out of 5 variants will follow the constraint
+
+### Content Design Lessons (from real case study)
+
+**Matching complexity across diagram sections:**
+- When a diagram has parallel structures (e.g. Physical System vs Social System), internal illustrations must use the same visual weight (same number of strokes, same icon complexity)
+- Specify explicitly: "Use 6-8 line strokes total — SAME complexity as the other side"
+
+**Distinguishing types of transformation:**
+- Geometric change (shape evolves): show bird's-eye footprint morphing (rectangle → L-shape)
+- Semantic change (function evolves): show same building shape but with visible usage change (residential house → add shop-front/awning = commercial). The shape stays similar, the facade changes.
+- These must look CLEARLY DIFFERENT from each other in the diagram
+
+**Agent/AI components placement:**
+- If the diagram shows an AI-driven simulation, agent cognitive components (Memory, Tools, Planning, Action) belong near the simulation core, not inside domain-specific rule boxes
+- Use concise labels: "Agent" rather than "LLM agent" — the paper text provides full context
+
 ## API Reference
 
 ### `ScienceFigureGenerator`
