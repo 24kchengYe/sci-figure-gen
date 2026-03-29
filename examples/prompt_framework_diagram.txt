@@ -1,0 +1,53 @@
+# Example Prompt: Framework Diagram (3-column simulation architecture)
+# Used for: Building Simulation journal, Figure 2
+# Model: google/gemini-3.1-flash-image-preview
+# Note: "Street / Visibility Weights" appearing once is hard to guarantee;
+#       generate 3-5 variants and pick the one that follows this rule.
+
+Based on this reference, recreate this framework diagram in Nature-journal style.
+
+THREE COLUMNS, wide landscape:
+
+LEFT — "Physical System" (rounded box, very light cool-gray #DCE5ED background):
+  - White box: "X_geo^t (Geometric Attributes)" / "Shape, Height, Structure, ..."
+  - Down arrow
+  - White box: "Shape Grammar Rules" containing:
+    A SIMPLE 2D bird's-eye building footprint outline (just a rectangle) with an arrow showing transformation into an L-shaped footprint outline. This represents parametric massing rules. Use only 6-8 line strokes total for this illustration.
+  - Down arrow
+  - "Geometric Evolution" with hollow down-arrow
+
+CENTER — White rounded box, "Iterative Simulation" label above:
+  - 5 graph nodes with solid + dashed edges
+  - Feature bars beside nodes
+  - "Street / Visibility Weights" — EXACTLY ONCE in the entire image
+  *** COUNT CHECK: the words "Street" "Visibility" "Weights" must each appear exactly 1 time ***
+  - Bidirectional arrows to left and right
+
+RIGHT — "Social System" (rounded box, very light warm-gray #EDE0DC background):
+  - White box: "X_sem^t (Semantic Attributes)" / "Quality, Occupancy, Usage, ..."
+  - Down arrow
+  - White box: "Social Grammar Rules (GenAI)" containing:
+    Memory|Tools small label boxes at top.
+    Below: a SIMPLE house outline (4-5 strokes) with arrow labeled "Planning Action" pointing to another SIMPLE house outline that looks slightly different (e.g. added a small rectangle = extension). Use only 6-8 line strokes total — SAME complexity as the footprint sketches on the left side.
+    Below: "(via Multi-Stakeholders)"
+  - Down arrow
+  - "Semantic Evolution" with hollow down-arrow
+
+BOTTOM: "System Update (T_{t+1})" full width
+Dashed feedback on both outer edges from bottom to top.
+
+CRITICAL:
+- "Street / Visibility Weights" ONCE ONLY.
+- Left and right internal illustrations must use the SAME number of strokes (6-8 each).
+- No title above diagram.
+
+STYLE — Mimic Nature journal figures exactly:
+- Font: Helvetica Neue LIGHT — thin, elegant, wide letter-spacing
+- Text weight: LIGHT for everything. Headers distinguished by SIZE only, never by bold weight.
+- Colors: minimalist — use only 1-2 muted tones on white. Lots of whitespace.
+- Lines: VERY THIN (0.5-1pt), precise, elegant
+- Spacing: GENEROUS — elements spread out with breathing room
+- No decorative elements, no gradients, no shadows
+- Pure white background
+- Overall: the figure should look like it belongs in Nature or Science magazine — ultra-clean, precise, understated elegance
+- Leave 15% blank white at bottom. No watermarks.

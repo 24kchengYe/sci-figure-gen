@@ -1,0 +1,35 @@
+# Example Prompt: Conceptual Diagram (Handshake between two disciplines)
+# Used for: Building Simulation journal, Figure 1
+# Model: google/gemini-3.1-flash-image-preview
+# Result: Nature-style conceptual diagram with matched pictogram icons
+
+Based on this reference, create a Nature-journal-quality version of this conceptual diagram.
+
+EXACT CONTENT (nothing more, nothing less):
+- TOP CENTER: "URBAN STUDIES" in a downward chevron shape (very light muted sage fill)
+- BOTTOM CENTER: "BUILDING STUDIES" in an upward chevron shape (very light muted warm fill)
+- CENTER: Elegant thin-line handshake icon
+- LEFT SIDE — three items, each with a tiny simple icon and thin arrow pointing right:
+  "Multi-Source Big Data"
+  "High-performance Computing"
+  "Generative AI"
+- RIGHT SIDE — three items, each with a tiny simple icon and thin arrow pointing right:
+  "Precise Urban Renewal"
+  "Large-scale Micro-Simulation"
+  "Unified BIM/CIM Standards"
+
+DO NOT add any extra text like "Physical System", "Social System", "Driving Forces", "Outcomes", or any other labels not listed above. Only the exact text items listed.
+
+All 6 icons: identical complexity (3-4 strokes each), like a matched pictogram set.
+Wide landscape format.
+
+STYLE — Mimic Nature journal figures exactly:
+- Font: Helvetica Neue LIGHT — thin, elegant, wide letter-spacing
+- Text weight: LIGHT for everything. Headers distinguished by SIZE only, never by bold weight.
+- Colors: minimalist — use only 1-2 muted tones on white. Lots of whitespace.
+- Lines: VERY THIN (0.5-1pt), precise, elegant
+- Spacing: GENEROUS — elements spread out with breathing room
+- No decorative elements, no gradients, no shadows
+- Pure white background
+- Overall: the figure should look like it belongs in Nature or Science magazine — ultra-clean, precise, understated elegance
+- Leave 15% blank white at bottom. No watermarks.
