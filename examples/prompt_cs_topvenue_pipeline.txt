@@ -1,0 +1,43 @@
+# Example Prompt: CS Top-Venue Pipeline Framework (ICLR/CVPR/ICML style)
+# Model: gpt-image-2 (MindCraft) or google/gemini-3.1-flash-image-preview (OpenRouter)
+# Key differences from Nature style:
+#   - Uses icons/pictograms instead of pure text
+#   - Uses math symbols (sigma, L, epsilon) instead of English descriptions
+#   - Color-coded grouping bands instead of all-white
+#   - Max 2-3 lines per module, NO accuracy numbers (those go in Results)
+#   - Dashed borders for annotation/optional modules
+
+Create a publication-quality method framework figure for a [FIELD] paper,
+in the visual style of top-venue papers at ICLR/CVPR/ICML.
+
+16:9 landscape. Pure white background. Flat 2D vector.
+Color palette: soft blue #C8D8E8 for Group I, soft sage #C8DCC8 for Group II,
+soft peach #E8D0C0 for Group III, ivory #F5F0E5 for annotation modules,
+teal #2A9D8F for arrows and highlights, navy #1B2A3A for text.
+Sans-serif font, titles 24pt, subtitles 14pt.
+
+=== THREE GROUPED ROWS ===
+
+Row 1 (blue band, "I. [GROUP NAME]"):
+Module A: [icon]. Title "[Name]". Line: "[key formula/innovation]"
+Arrow -> Module B: [icon]. Title "[Name]". Line: "[method]"
+
+Row 2 (green band, "II. [GROUP NAME]"):
+Module C: [icon]. Title "[Name]". Line: "[formula using math symbols]"
+Arrow -> Module D: [icon]. Title "[Name]". Line: "[method]"
+
+Row 3 (peach band, "III. [GROUP NAME]"):
+Module E: [icon]. Title "[Name]". Line: "[innovation]"
+Arrow -> Terminal: [database icon]. Title "[Output Name]".
+
+Annotation module (ivory, dashed border):
+"[Name]" with [magnifying glass icon]. "[role description]".
+Connected to terminal by dotted arrow.
+
+=== RULES ===
+Icons: simple line-art pictograms, 3-5 strokes each, matched complexity.
+Math symbols preferred: sigma, L, epsilon, IoU, pi.
+NO accuracy numbers. NO paragraphs in boxes. NO author names.
+Generous whitespace. Each box feels "airy".
+
+Output a single PNG image.

@@ -31,32 +31,71 @@ except ImportError as e:
 
 
 class ScienceFigureGenerator:
-    """End-to-end pipeline: AI generate → crop logo → super-resolution."""
+    """End-to-end pipeline: AI generate → crop logo → super-resolution.
+
+    Supports two backends:
+      - OpenRouter (Gemini/GPT via chat/completions, needs proxy for overseas)
+      - MindCraft (gpt-image-2 via images/generations, 国内直连 no proxy)
+    """
 
     MODELS = {
+        # OpenRouter models
         "gemini-flash": "google/gemini-3.1-flash-image-preview",
         "gemini-2.5": "google/gemini-2.5-flash-image",
         "gpt-mini": "openai/gpt-5-image-mini",
         "gpt-full": "openai/gpt-5-image",
+        # MindCraft models
+        "gpt-image-2": "gpt-image-2",
     }
 
-    def __init__(self, api_key=None, proxy=None, model="gemini-flash", output_dir="."):
-        self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
-        if not self.api_key:
-            raise ValueError(
-                "API key required. Set OPENROUTER_API_KEY env var or pass api_key parameter."
-            )
+    # Models that use MindCraft /images/generations endpoint
+    MINDCRAFT_MODELS = {"gpt-image-2"}
 
-        self.base_url = "https://openrouter.ai/api/v1"
-        self.model = self.MODELS.get(model, model)  # Allow full model ID too
+    def __init__(self, api_key=None, proxy=None, model="gemini-flash",
+                 output_dir=".", backend=None):
+        """Initialize generator.
+
+        Args:
+            api_key: API key. Auto-detected from env vars if None.
+            proxy: Proxy URL (OpenRouter only). Auto-detected if None.
+            model: Model shortname or full ID.
+            output_dir: Directory for output files.
+            backend: Force backend: "openrouter" or "mindcraft". Auto-detected if None.
+        """
+        self.model = self.MODELS.get(model, model)
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
 
-        # Set proxy
-        proxy = proxy or os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY")
-        if proxy:
-            os.environ["HTTPS_PROXY"] = proxy
-            os.environ["HTTP_PROXY"] = proxy
+        # Determine backend
+        if backend:
+            self.backend = backend
+        elif self.model in self.MINDCRAFT_MODELS:
+            self.backend = "mindcraft"
+        else:
+            self.backend = "openrouter"
+
+        # Set API key and proxy based on backend
+        if self.backend == "mindcraft":
+            self.api_key = api_key or os.environ.get("MINDCRAFT_API_KEY",
+                "MC-72C89F3896E04155B26DD4830FABFA96")
+            self.base_url = "https://api.mindcraft.com.cn/v1"
+            # MindCraft: disable proxy, disable SSL verify
+            self.session = requests.Session()
+            self.session.verify = False
+            self.session.proxies = {"http": None, "https": None}
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        else:
+            self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
+            if not self.api_key:
+                raise ValueError(
+                    "API key required. Set OPENROUTER_API_KEY or MINDCRAFT_API_KEY env var."
+                )
+            self.base_url = "https://openrouter.ai/api/v1"
+            proxy = proxy or os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY")
+            self.session = requests.Session()
+            if proxy:
+                self.session.proxies = {"http": proxy, "https": proxy}
 
     def compress_reference(self, input_path, output_path, max_width=800):
         """Compress reference image for API upload (avoids timeout)."""
@@ -70,7 +109,82 @@ class ScienceFigureGenerator:
         return output_path
 
     def generate(self, prompt, ref_image=None, output_name="figure.png"):
-        """Call OpenRouter API to generate an image."""
+        """Generate an image. Routes to OpenRouter or MindCraft based on backend."""
+        if self.backend == "mindcraft":
+            return self._generate_mindcraft(prompt, output_name)
+        else:
+            return self._generate_openrouter(prompt, ref_image, output_name)
+
+    def _generate_mindcraft(self, prompt, output_name):
+        """MindCraft /images/generations endpoint."""
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "size": "1536x1024",
+            "quality": "high",
+            "return_url": True,  # CRITICAL: must be True
+        }
+        print(f"  Generating with MindCraft {self.model} ({len(prompt)} chars)...")
+        if len(prompt) > 2000:
+            print(f"  WARNING: Prompt is {len(prompt)} chars. MindCraft gpt-image-2 "
+                  f"may return empty body for prompts >2000 chars.")
+
+        try:
+            resp = self.session.post(
+                f"{self.base_url}/images/generations",
+                headers=headers, json=payload, timeout=(30, 600),
+            )
+        except Exception as e:
+            print(f"  Connection error: {e}")
+            return None
+
+        if resp.status_code != 200:
+            msg = resp.text[:200] if resp.content else "empty"
+            print(f"  API error {resp.status_code}: {msg}")
+            return None
+
+        if not resp.content:
+            print(f"  Empty response body (prompt too long or service issue)")
+            return None
+
+        try:
+            data = resp.json()
+        except Exception:
+            print(f"  Invalid JSON")
+            return None
+
+        items = data.get("data", [])
+        if not isinstance(items, list) or not items:
+            print(f"  No image data in response")
+            return None
+
+        file_url = items[0].get("file_url", "")
+        if not file_url:
+            print(f"  No file_url. Keys: {list(items[0].keys())}")
+            return None
+
+        print(f"  Downloading from CDN...")
+        try:
+            img_resp = self.session.get(file_url, timeout=120)
+            if img_resp.status_code == 200 and len(img_resp.content) > 1000:
+                out_path = os.path.join(self.output_dir, output_name)
+                with open(out_path, "wb") as f:
+                    f.write(img_resp.content)
+                w = items[0].get("image_width", "?")
+                h = items[0].get("image_height", "?")
+                print(f"  Saved: {output_name} ({w}x{h}, {len(img_resp.content)//1024} KB)")
+                return out_path
+        except Exception as e:
+            print(f"  Download failed: {e}")
+
+        return None
+
+    def _generate_openrouter(self, prompt, ref_image, output_name):
+        """OpenRouter /chat/completions endpoint."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -85,15 +199,17 @@ class ScienceFigureGenerator:
             content.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}})
         content.append({"type": "text", "text": prompt})
 
-        payload = {"model": self.model, "messages": [{"role": "user", "content": content}]}
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": content}],
+            "modalities": ["image", "text"],
+        }
 
-        print(f"  Generating with {self.model}...")
+        print(f"  Generating with OpenRouter {self.model}...")
         try:
-            resp = requests.post(
+            resp = self.session.post(
                 f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=180,
+                headers=headers, json=payload, timeout=300,
             )
         except requests.exceptions.ConnectionError as e:
             print(f"  Connection error (ref image may be too large): {e}")
@@ -109,7 +225,6 @@ class ScienceFigureGenerator:
             print(f"  Invalid JSON response")
             return None
 
-        # Extract image from response
         msg = data.get("choices", [{}])[0].get("message", {})
 
         # Check 'images' field (Gemini style)
@@ -122,7 +237,7 @@ class ScienceFigureGenerator:
         content_resp = msg.get("content", "")
         if isinstance(content_resp, list):
             for part in content_resp:
-                if isinstance(part, dict) and part.get("type") == "image_url":
+                if isinstance(part, dict) and part.get("type") in ("image_url", "output_image"):
                     result = self._extract_image(part, output_name)
                     if result:
                         return result
@@ -243,7 +358,9 @@ def main():
     parser.add_argument("--ref", type=str, help="Reference image path")
     parser.add_argument("--output", "-o", type=str, default="figure.png", help="Output filename")
     parser.add_argument("--model", type=str, default="gemini-flash",
-                        help="Model: gemini-flash, gemini-2.5, gpt-mini, gpt-full, or full model ID")
+                        help="Model: gemini-flash, gemini-2.5, gpt-mini, gpt-full, gpt-image-2, or full model ID")
+    parser.add_argument("--backend", type=str, default=None, choices=["openrouter", "mindcraft"],
+                        help="Force backend (auto-detected from model if not set)")
     parser.add_argument("--attempts", type=int, default=1, help="Number of variants to generate")
     parser.add_argument("--output-dir", type=str, default=".", help="Output directory")
     parser.add_argument("--no-upscale", action="store_true", help="Skip EDSR upscaling")
@@ -261,7 +378,8 @@ def main():
         with open(args.prompt_file, "r", encoding="utf-8") as f:
             prompt = f.read().strip()
 
-    gen = ScienceFigureGenerator(model=args.model, output_dir=args.output_dir)
+    gen = ScienceFigureGenerator(model=args.model, output_dir=args.output_dir,
+                                  backend=args.backend)
 
     # Compress reference if provided
     ref = args.ref
